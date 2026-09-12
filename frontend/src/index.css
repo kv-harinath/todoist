@@ -1,0 +1,668 @@
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --text: #202020;
+  --text-muted: #7d7d7d;
+  --border: #ece5e1;
+  --accent: #dc4c3f;
+  --accent-hover: #c53727;
+  --accent-contrast: #ffffff;
+  --hover: #f6efec;
+  --sidebar-bg: #fbf5f2;
+  --p1: #d1453b;
+  --p2: #eb8909;
+  --p3: #246fe0;
+  --p4: #a0a0a0;
+  --success: #2f9e44;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1a1a1a;
+  --bg-elevated: #242424;
+  --text: #e8e8e8;
+  --text-muted: #9a9a9a;
+  --border: #333333;
+  --accent: #ff6b5e;
+  --accent-hover: #ff8478;
+  --accent-contrast: #1a1a1a;
+  --hover: #2e2e2e;
+  --sidebar-bg: #202020;
+  --p1: #ff6b5e;
+  --p2: #ffab40;
+  --p3: #5b9bff;
+  --p4: #7a7a7a;
+  --success: #51cf66;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Auth (login) shell, unrelated to the app layout above */
+.centered-form {
+  margin: auto;
+  width: 100%;
+  max-width: 360px;
+  padding: 2rem;
+}
+
+.centered-form h1 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.centered-form input {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.centered-form button {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.form-error {
+  color: var(--accent);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.password-field {
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.password-field input {
+  margin-bottom: 0;
+  padding-right: 2.4rem;
+}
+
+/* Higher specificity than ".centered-form button" (which sets
+   width:100%, background:accent, etc. for the real submit button) so
+   this small icon button inside the password field isn't stretched
+   into a full-width red bar covering the input. */
+.password-field button.password-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  height: auto;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.password-field button.password-toggle:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-section {
+  margin-top: 1rem;
+}
+
+.sidebar-section-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 0.92rem;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-link:hover {
+  background: var(--hover);
+}
+
+.sidebar-link.active {
+  background: var(--hover);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.sidebar-link svg {
+  flex-shrink: 0;
+}
+
+/* Account row + Add task button, matching the reference app's sidebar header */
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.account-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.add-task-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-task-button:hover {
+  background: var(--accent-hover);
+}
+
+.sidebar-link .count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.icon-button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.2rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.icon-button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.theme-toggle {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Main content */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 2rem 2.5rem;
+  max-width: 900px;
+}
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.page-header h1 {
+  font-size: 1.6rem;
+  margin: 0;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.placeholder-page {
+  padding: 2rem;
+}
+
+/* Quick add */
+.quick-add {
+  margin: 1rem 0 1.25rem;
+}
+
+.quick-add form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.quick-add input[type="text"] {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.quick-add button {
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.quick-add-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+
+/* Task list */
+.task-group-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 1.25rem 0 0.4rem;
+  text-transform: capitalize;
+}
+
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+}
+
+.task-row.dragging {
+  opacity: 0.4;
+}
+
+.task-row.completed .task-content {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--p4);
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  padding: 0;
+}
+
+.task-checkbox.p1 { border-color: var(--p1); }
+.task-checkbox.p2 { border-color: var(--p2); }
+.task-checkbox.p3 { border-color: var(--p3); }
+.task-checkbox.completed { background: var(--success); border-color: var(--success); }
+
+.task-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-content {
+  font-size: 0.95rem;
+}
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.badge {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: var(--hover);
+  color: var(--text-muted);
+}
+
+.badge.overdue {
+  background: rgba(219, 76, 63, 0.15);
+  color: var(--accent);
+}
+
+.badge.today {
+  background: rgba(235, 137, 9, 0.15);
+  color: var(--p2);
+}
+
+.badge.recurring::before {
+  content: "\21bb ";
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+}
+
+.task-row:hover .task-actions {
+  opacity: 1;
+}
+
+.empty-state {
+  color: var(--text-muted);
+  padding: 1.5rem 0.4rem;
+  font-size: 0.9rem;
+}
+
+/* Edit panel */
+.edit-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0.4rem 0;
+  background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.edit-panel textarea,
+.edit-panel input[type="text"],
+.edit-panel input[type="date"],
+.edit-panel select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.edit-panel-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.edit-panel-row > * {
+  flex: 1;
+  min-width: 120px;
+}
+
+.edit-panel-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.button-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.button-secondary {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* Priority selector */
+.priority-selector {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.priority-option {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.priority-option.selected.p1 { background: var(--p1); color: white; border-color: var(--p1); }
+.priority-option.selected.p2 { background: var(--p2); color: white; border-color: var(--p2); }
+.priority-option.selected.p3 { background: var(--p3); color: white; border-color: var(--p3); }
+.priority-option.selected.p4 { background: var(--p4); color: white; border-color: var(--p4); }
+
+/* Label picker */
+.label-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.label-chip {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
+.label-chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  z-index: 20;
+}
+
+.modal-box {
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.modal-box h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* Board view */
+.board-columns {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+}
+
+.board-column {
+  background: var(--sidebar-bg);
+  border-radius: 8px;
+  padding: 0.6rem;
+  min-width: 240px;
+  flex: 1;
+}
+
+.board-column h3 {
+  font-size: 0.85rem;
+  margin: 0.2rem 0.3rem 0.5rem;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.view-toggle button,
+.view-toggle a {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 0.25rem 0.7rem;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.view-toggle button.active,
+.view-toggle a.active {
+  background: var(--hover);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Stats */
+.stats-grid {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.stat-tile {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  min-width: 140px;
+}
+
+.stat-tile .value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.stat-tile .label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
