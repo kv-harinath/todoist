@@ -1,0 +1,17 @@
+# Normalize line endings: store as LF in the repo, let Git handle the
+# checkout conversion per-platform - avoids the "LF will be replaced by
+# CRLF" warning on Windows and keeps diffs clean across OSes.
+* text=auto eol=lf
+
+# Windows-specific scripts should always stay CRLF regardless of platform.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files - never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
