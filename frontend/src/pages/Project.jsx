@@ -5,6 +5,7 @@ import { useSections, useCreateSection, useDeleteSection } from '../hooks/useSec
 import { useProjectTasks } from '../hooks/useTasks.js'
 import QuickAdd from '../components/QuickAdd.jsx'
 import TaskList from '../components/TaskList.jsx'
+import CalendarView from '../components/CalendarView.jsx'
 import ProjectFormModal from '../components/ProjectFormModal.jsx'
 
 export default function ProjectPage() {
@@ -85,6 +86,9 @@ export default function ProjectPage() {
         <button type="button" className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>
           Board
         </button>
+        <button type="button" className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}>
+          Calendar
+        </button>
       </div>
 
       <QuickAdd projectId={project.id} placeholder={`Add a task to ${project.name}...`} />
@@ -150,6 +154,8 @@ export default function ProjectPage() {
           ))}
         </div>
       )}
+
+      {!loadingTasks && view === 'calendar' && <CalendarView tasks={incompleteTasks} />}
 
       {editingProject && (
         <ProjectFormModal

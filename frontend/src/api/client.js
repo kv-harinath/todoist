@@ -98,6 +98,18 @@ export const api = {
   updateFilter: (id, data) => request(`/filters/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteFilter: (id) => request(`/filters/${id}`, { method: 'DELETE' }),
 
+  // Reminders
+  listReminders: (taskId) => request(`/reminders${qs({ task_id: taskId })}`),
+  dueReminders: () => request('/reminders/due'),
+  createReminder: (data) => request('/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  dismissReminder: (id) => request(`/reminders/${id}/dismiss`, { method: 'POST' }),
+  deleteReminder: (id) => request(`/reminders/${id}`, { method: 'DELETE' }),
+
+  // Push / reminder channels
+  pushStatus: () => request('/push/status'),
+  subscribePush: (subscription) =>
+    request('/push/subscriptions', { method: 'POST', body: JSON.stringify(subscription) }),
+
   // Views
   viewInbox: () => request('/views/inbox'),
   viewToday: () => request('/views/today'),
@@ -105,6 +117,7 @@ export const api = {
 
   // Stats
   statsSummary: () => request('/stats/summary'),
+  updateGoals: (data) => request('/stats/goals', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Auth
   register: (data) => request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),

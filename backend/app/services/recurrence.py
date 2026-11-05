@@ -5,8 +5,10 @@ style, rather than full RRULE/iCal. Supported forms:
 
   "every day" / "every weekday"
   "every <weekday>"            e.g. "every mon", "every monday"
-  "every N days"                e.g. "every 3 days"
+  "every N days/weeks/months"   e.g. "every 3 days", "every 2 weeks"
+  "every other day/week/month/<weekday>"
   "every week" / "every month"
+  "every! ..."                  recur after completion (counted from the completion date)
 
 On completing a recurring task the caller computes the next due_date
 from the *current* due_date (or today, if the task had none) and
@@ -35,13 +37,22 @@ class InvalidRecurrenceRule(ValueError):
     pass
 
 
-def compute_next_due_date(current: date | None, rule: str) -> date:
+def compute_next_due_date(current: date | None, rule: str, completed_on: date | None = None) -> date:
     """Given the task's current due_date (or None) and its recurrence
     rule, return the next due_date. Raises InvalidRecurrenceRule if the
-    rule isn't recognized."""
+    rule isn't recognized.
 
-    base = current or date.today()
+    "every! ..." rules recur *after completion*: the next date is counted
+    from the completion date (`completed_on`, default today) instead of
+    from the current due date."""
+
     normalized = rule.strip().lower()
+    if normalized.startswith("every!"):
+        base = completed_on or date.today()
+        normalized = "every" + normalized[len("every!"):]
+    else:
+        base = current or date.today()
+    normalized = re.sub(r"\s+", " ", normalized)
 
     if normalized in ("every day", "daily"):
         return base + timedelta(days=1)
@@ -58,18 +69,27 @@ def compute_next_due_date(current: date | None, rule: str) -> date:
     if normalized in ("every month", "monthly"):
         return base + relativedelta(months=1)
 
-    every_n_days = re.match(r"^every (\d+) days?$", normalized)
-    if every_n_days:
-        n = int(every_n_days.group(1))
+    # "every other day/week/month" == "every 2 ..."; "every N days/weeks/months"
+    interval = re.match(r"^every (?:(\d+)|(other)) (day|week|month)s?$", normalized)
+    if interval:
+        n = 2 if interval.group(2) else int(interval.group(1))
         if n < 1:
             raise InvalidRecurrenceRule(rule)
-        return base + timedelta(days=n)
+        unit = interval.group(3)
+        if unit == "day":
+            return base + timedelta(days=n)
+        if unit == "week":
+            return base + timedelta(weeks=n)
+        return base + relativedelta(months=n)
 
-    every_weekday_name = re.match(r"^every ([a-z]+)$", normalized)
-    if every_weekday_name and every_weekday_name.group(1) in _WEEKDAYS:
-        target = _WEEKDAYS[every_weekday_name.group(1)]
+    # "every <weekday>" / "every other <weekday>" (every 2nd week on that day)
+    weekday_rule = re.match(r"^every (other )?([a-z]+)$", normalized)
+    if weekday_rule and weekday_rule.group(2) in _WEEKDAYS:
+        target = _WEEKDAYS[weekday_rule.group(2)]
         days_ahead = (target - base.weekday()) % 7
         days_ahead = days_ahead or 7  # always move forward, never same day
+        if weekday_rule.group(1):
+            days_ahead += 7
         return base + timedelta(days=days_ahead)
 
     raise InvalidRecurrenceRule(rule)

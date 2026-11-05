@@ -2,7 +2,7 @@
 
 Single-user Todoist-style task manager. React + FastAPI + PostgreSQL.
 
-See `todoist-clone-plan.md` for the full build plan and `PROGRESS.md` for milestone status. Milestones 1-7 are implemented; milestone 8 (automated test suite + deployment write-up) is intentionally out of scope for now. Real accounts exist now (see "Creating an account" below) - each user only sees their own projects/tasks.
+See `todoist-clone-plan.md` for the full build plan and `PROGRESS.md` for milestone status. See "Implementation status" below for what is done, pending and still untested. Real accounts exist now (see "Creating an account" below) - each user only sees their own projects/tasks.
 
 ## Option A: Run everything with Docker Compose (recommended)
 
@@ -83,35 +83,98 @@ account; other accounts (or the old pre-auth dev data owned by the seeded `local
 `backend/app/core/constants.py`) won't show up for you. Tokens are JWTs stored in the browser's local storage;
 logging out (sidebar) or letting the token expire clears them and sends you back to /login.
 
-## What's implemented
+## Implementation status
 
-- **Projects & tasks** (milestone 3): full CRUD, Inbox view, complete/reopen, drag-and-drop reordering.
-- **Views** (milestone 4): Today (due + overdue), Upcoming (next 7 days, grouped by date), Inbox.
-- **Organization** (milestone 5): sections (with a list/board toggle per project), labels, favorites, and
-  saved filters using a small AND-only query language (see the Filters page for the token syntax).
-- **Recurrence & quick-add** (milestone 6): a rule interpreter (`backend/app/services/recurrence.py`)
-  supporting "every day", "every N days", "every week/month", "every weekday", and "every &lt;weekday&gt;";
-  the quick-add box (`frontend/src/utils/quickAddParser.js`) recognizes "today", "tomorrow", "next mon", and
-  "p1".."p4" and strips them out of the task text.
-- **Stats & theming** (milestone 7): a lightweight stats page (completed today/this week, a day streak),
-  and a light/dark theme toggle in the sidebar (persisted in the browser's local storage).
-- **Real accounts** (milestone 2): email/password registration and login, JWT bearer tokens, every API route
-  requiring a valid token (`backend/app/core/deps.py`), and a protected-route wrapper on the frontend
-  (`frontend/src/components/ProtectedRoute.jsx`) that redirects to /login when signed out or a token expires.
+Reference: public Todoist pages inspected with the Rea MCP (see `docs/TODOIST_REFERENCE_ANALYSIS.md`); feature-by-feature
+comparison in `docs/TODOIST_GAP_ANALYSIS.md`. **Everything below marked "completed" has been written and
+unit-tested or build-checked, but the app has not yet been run end to end** - see "Required testing".
 
-### Known scope limitations (by design, not bugs)
+### Completed
 
-- **No automated test suite beyond a few unit tests** (milestone 8 is out of scope for now): there are unit
-  tests for the recurrence engine, filter parser, and password/JWT helpers (`backend/tests/`), but no
-  integration test suite or deployment write-up yet.
-- No password reset, email verification, or session/refresh-token rotation - a lost password currently has no
-  recovery path other than direct database access.
-- Filters support a flat, implicitly-ANDed token list (no OR, no parentheses) - a fuller filter DSL is
-  called out as Phase 2+ in `todoist-clone-plan.md`.
-- Drag-and-drop reordering is available in the Inbox and within a project's list view, not in Today/Upcoming/
-  Filters (their order comes from due date or the filter query, not a manually chosen order).
-- A recurring task's completion history isn't fully tracked (the same row rolls its due date forward per the
-  plan's recommendation), so the stats page's streak/weekly counts are most accurate for non-recurring tasks.
+- **Accounts:** email/password registration and login, JWT bearer tokens, protected routes on both sides.
+- **Projects & tasks:** CRUD, Inbox, complete/reopen, drag-and-drop reordering (Inbox and project lists).
+- **Sub-tasks:** nested up to 4 levels with an "Add sub-task" button; the backend rejects cycles, foreign
+  parents and nesting deeper than 4 levels (`_check_parent` in `backend/app/api/v1/tasks.py`).
+- **Views:** Today, Upcoming, Inbox, Search, and per-project **List / Board / Calendar** layouts (the calendar
+  is a month grid; drag a task onto a day to reschedule it).
+- **Organization:** sections, labels, favorites, priorities, task descriptions, due dates and times.
+- **Filters:** saved filters with a Todoist-style boolean language (`&`, `|`, `!`, parentheses, `,`, `\` escapes,
+  `#Project`, `##Project` incl. sub-projects, `%label`, `p1`-`p4`, `today`, `tomorrow`, `yesterday`, `overdue`,
+  `no date`, `no time`, `recurring`, `subtask`, `search:`, `date/due [before|after]: ...`, `N days`,
+  `next week`), plus filter descriptions and query editing. See `backend/app/services/filters.py`.
+- **Quick Add** (inline box and the global Add task dialog): `#Project`, `/Section`, `@label` (auto-created),
+  `p1`-`p4`, `today/tomorrow/next mon`, `in N days`, `Mar 5`, `2026-12-01`, `at 3pm`, and recurrence phrases
+  (`every day/weekday/week/month`, `every N days/weeks/months`, `every other ...`, `every mon`, `every! ...`).
+- **Recurrence:** rule engine in `backend/app/services/recurrence.py`, including "after completion" (`every!`).
+- **Reminders:** per-task reminders with an in-app toast (30s poll), plus optional **email** (SMTP) and
+  **browser push** (Web Push/VAPID) delivered by a background worker; each channel is sent once and failed
+  sends are retried.
+- **Stats, goals and Karma:** daily/weekly goals with progress bars, goal streaks, days off, vacation mode, a
+  7-day chart and a Karma score. Every completion is stored in `completion_events`, so recurring tasks keep
+  their history. The Karma formula (1 point per task, +5 per daily goal met, +25 per weekly goal met; level
+  thresholds in `backend/app/services/stats.py`) is this project's own - Todoist's is not public.
+- **Theming:** light/dark toggle.
+- **Docs and tests:** Todoist reference + gap analysis in `docs/`; 54 backend tests (pytest) and 9 frontend
+  tests (vitest, Quick Add parser).
+
+### Pending (not implemented)
+
+- **Filters:** `deadline:` queries (tasks have no deadline field), `+4 hours`-style relative times, and a comma
+  producing separate result lists (it is currently a union). Team filters do not apply (single-user app).
+- **Reminders:** push to a mobile app, and email to addresses other than the account's own.
+- **Stats:** an activity-history / completed-tasks archive page.
+- **Layout:** the Calendar layout exists only on project pages (not filters, labels, Today/Upcoming); drag
+  reordering is not available in Today/Upcoming/Filters.
+- **Accounts:** password reset, email verification, refresh-token rotation.
+- **Quality:** integration tests against a database, browser (end-to-end) tests, a deployment write-up
+  (milestone 8 in `PROGRESS.md`), and a responsive audit of the app UI at phone width.
+- **Out of scope (single-user app):** comments, shared projects/assignees, team workspaces, file uploads,
+  integrations, the templates gallery, AI features.
+- **Unknown from the reference:** exact spacing, dialogs and menus of the authenticated Todoist app were behind
+  login and could not be inspected, so UI-fidelity gaps are unscored.
+
+### Required testing
+
+None of the following has been run: this repo was developed without a running Postgres/Docker. Do these in order.
+
+1. **Start and migrate.** `docker compose up --build` (or Option B + `alembic upgrade head`). Confirm migrations
+   `0002` (reminders, filter description), `0003` (reminder channels, push subscriptions) and `0004`
+   (completion events, goals; backfills history) apply cleanly, and that `/api/v1/health` returns ok.
+2. **Automated checks.** `cd backend && python -m pytest` (54 pass) and `cd frontend && npm test` (9 pass),
+   then `npm run build`.
+3. **Quick Add.** Create tasks with e.g. `Buy milk #Home /Errands @shop p1 tomorrow at 3pm`,
+   `Water plants every! 3 days`, `Sync every other mon`; check project, section, labels, date/time and recurrence.
+4. **Sub-tasks.** Add sub-tasks to 4 levels; confirm a 5th level, making a task its own parent, and moving a
+   task under its own descendant are rejected (HTTP 422).
+5. **Calendar.** Open a project > Calendar; change month; drag a task to another day and confirm the due date
+   changes; check the layout at phone width.
+6. **Filters.** Save and open: `(today | overdue) & p1`, `!no date`, `##<parent project>`, `%label & !subtask`,
+   `search: milk`, `date before: next week`; edit the query; add a filter description.
+7. **Recurrence and Stats.** Complete a recurring task several times, a normal task, then reopen it; check the
+   Stats counts, streaks and Karma change correctly (reopen must not double count); set goals, days off and
+   vacation mode and confirm they persist after reload.
+8. **In-app reminders.** Add a reminder a minute ahead; confirm the toast appears and Dismiss works.
+9. **Email reminders.** Set `SMTP_*` in `.env` (a test inbox such as Mailpit works), add an email reminder, and
+   confirm exactly one email arrives; break the SMTP host and confirm it retries and logs the failure.
+10. **Push reminders.** Generate keys with `python backend/scripts/generate_vapid_keys.py`, set `VAPID_*`, open the
+    app on `localhost`/HTTPS, add a push reminder and allow notifications; confirm the notification appears with
+    the tab closed, and that revoking permission removes the dead subscription after the next send.
+11. **Cross-user safety.** With two accounts, confirm one cannot read or modify the other's tasks, reminders,
+    filters or push subscriptions.
+12. **Responsive pass.** Check the sidebar, task list, edit panel, Stats and Calendar at 390px width.
+
+### Configuration for optional features
+
+**Stats goals** need no configuration. **Email and push reminders:** set these in `.env` (see `.env.example`)
+and run `alembic upgrade head`:
+
+- **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`. Sent to the account's email.
+- **Push:** run `python backend/scripts/generate_vapid_keys.py` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT`. Push needs HTTPS or `localhost`; the browser asks for permission when you add a push reminder.
+
+A background worker inside the API process checks every `REMINDER_POLL_SECONDS` (default 30) and sends each
+channel once. Disable it with `REMINDER_WORKER_ENABLED=false`; with several API replicas, enable it on one only
+to avoid duplicate sends.
 
 ## Repo layout
 

@@ -365,6 +365,7 @@ button {
 
 .task-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.6rem;
   padding: 0.55rem 0.4rem;
@@ -666,3 +667,25 @@ button {
   font-size: 0.8rem;
   margin-top: 0.2rem;
 }
+
+/* Reminders */
+.reminder-list { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; }
+.reminder-item { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.reminder-toasts { position: fixed; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 50; }
+.reminder-toast {
+  background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent, #db4c3f); border-radius: 8px; padding: 0.6rem 0.8rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); max-width: 20rem; display: flex; gap: 0.6rem; align-items: center;
+}
+
+/* Calendar layout */
+.calendar-nav { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.calendar-weekday { padding: 0.35rem; font-size: 0.75rem; color: var(--text-muted); background: var(--bg-elevated); text-align: center; }
+.calendar-day { min-height: 5.5rem; border-top: 1px solid var(--border); border-left: 1px solid var(--border); padding: 0.25rem; font-size: 0.75rem; overflow: hidden; }
+.calendar-day:nth-child(7n + 8) { border-left: none; }
+.calendar-day.outside { opacity: 0.45; }
+.calendar-day.today .calendar-date { background: var(--accent, #db4c3f); color: #fff; border-radius: 999px; padding: 0 0.35rem; }
+.calendar-task { display: block; margin-top: 0.15rem; padding: 0.1rem 0.3rem; border-radius: 4px; background: var(--bg-elevated); border-left: 3px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.calendar-task.p1 { border-left-color: #d1453b; } .calendar-task.p2 { border-left-color: #eb8909; } .calendar-task.p3 { border-left-color: #246fe0; }
+@media (max-width: 640px) { .calendar-day { min-height: 3.5rem; } .calendar-task { font-size: 0.65rem; } }

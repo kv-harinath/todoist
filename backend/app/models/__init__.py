@@ -8,3 +8,6 @@ from app.models.label import Label  # noqa: F401
 from app.models.task import Task  # noqa: F401
 from app.models.task_label import TaskLabel  # noqa: F401
 from app.models.filter import Filter  # noqa: F401
+from app.models.reminder import Reminder  # noqa: F401
+from app.models.push_subscription import PushSubscription  # noqa: F401
+from app.models.completion_event import CompletionEvent  # noqa: F401

@@ -17,3 +17,4 @@ class Filter(Base):
     name: Mapped[str] = mapped_column(String(255))
     query: Mapped[str] = mapped_column(Text)
     color: Mapped[str] = mapped_column(String(20), default="#808080")
+    description: Mapped[str] = mapped_column(Text, default="", server_default="")

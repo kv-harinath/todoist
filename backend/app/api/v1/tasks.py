@@ -2,11 +2,12 @@ import uuid
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func
+from sqlalchemy import delete, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user_id, get_db
+from app.models.completion_event import CompletionEvent
 from app.models.filter import Filter
 from app.models.label import Label
 from app.models.project import Project
@@ -14,7 +15,7 @@ from app.models.task import Task
 from app.models.task_label import TaskLabel
 from app.schemas.common import ReorderRequest
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
-from app.services.filters import parse_filter_query
+from app.services.filters import build_filter_clause
 from app.services.recurrence import InvalidRecurrenceRule, compute_next_due_date
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -30,6 +31,41 @@ async def _get_owned_task(task_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSessi
     if task is None or task.user_id != user_id:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+
+MAX_SUBTASK_LEVELS = 4  # Todoist: a task plus up to three levels of sub-tasks
+
+
+async def _check_parent(
+    task_id: uuid.UUID | None, parent_id: uuid.UUID | None, user_id: uuid.UUID, db: AsyncSession
+) -> None:
+    """Reject a parent that is foreign, creates a cycle, or nests too deep."""
+    if parent_id is None:
+        return
+    if task_id is not None and parent_id == task_id:
+        raise HTTPException(status_code=422, detail="A task cannot be its own parent")
+    ancestors: list[uuid.UUID] = []
+    current: uuid.UUID | None = parent_id
+    while current is not None:
+        row = (await db.execute(select(Task.user_id, Task.parent_task_id).where(Task.id == current))).first()
+        if row is None or row.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Parent task not found")
+        if task_id is not None and current == task_id:
+            raise HTTPException(status_code=422, detail="Sub-task cycle")
+        ancestors.append(current)
+        if len(ancestors) >= MAX_SUBTASK_LEVELS:
+            raise HTTPException(status_code=422, detail="Sub-tasks can be nested at most 4 levels deep")
+        current = row.parent_task_id
+    if task_id is not None:
+        # The moved task brings its own descendants along.
+        levels_below, frontier = 0, [task_id]
+        while frontier:
+            result = await db.execute(select(Task.id).where(Task.parent_task_id.in_(frontier)))
+            frontier = list(result.scalars().all())
+            if frontier:
+                levels_below += 1
+        if len(ancestors) + 1 + levels_below > MAX_SUBTASK_LEVELS:
+            raise HTTPException(status_code=422, detail="Sub-tasks can be nested at most 4 levels deep")
 
 
 async def _valid_label_ids(label_ids: list[uuid.UUID], user_id: uuid.UUID, db: AsyncSession) -> set[uuid.UUID]:
@@ -97,27 +133,9 @@ async def list_tasks(
         saved_filter = await db.get(Filter, filter_id)
         if saved_filter is None or saved_filter.user_id != user_id:
             raise HTTPException(status_code=404, detail="Filter not found")
-        parsed = parse_filter_query(saved_filter.query)
-        today = date.today()
-
-        if parsed.priorities:
-            stmt = stmt.where(Task.priority.in_(parsed.priorities))
-        if parsed.overdue:
-            stmt = stmt.where(Task.due_date < today, Task.is_completed.is_(False))
-        if parsed.due_today:
-            stmt = stmt.where(Task.due_date == today)
-        if parsed.no_date:
-            stmt = stmt.where(Task.due_date.is_(None))
-        if parsed.completed is not None:
-            stmt = stmt.where(Task.is_completed == parsed.completed)
-        if parsed.label_names:
-            stmt = stmt.where(
-                Task.labels.any(TaskLabel.label.has(func.lower(Label.name).in_([n.lower() for n in parsed.label_names])))
-            )
-        if parsed.project_names:
-            stmt = stmt.where(
-                Task.project.has(func.lower(Project.name).in_([n.lower() for n in parsed.project_names]))
-            )
+        clause = build_filter_clause(saved_filter.query)
+        if clause is not None:
+            stmt = stmt.where(clause)
 
     stmt = stmt.order_by(Task.sort_order, Task.created_at)
     result = await db.execute(stmt)
@@ -131,6 +149,7 @@ async def create_task(
     db: AsyncSession = Depends(get_db),
     user_id: uuid.UUID = Depends(get_current_user_id),
 ):
+    await _check_parent(None, payload.parent_task_id, user_id, db)
     data = payload.model_dump(exclude={"label_ids"})
     max_sort = await db.scalar(select(func.max(Task.sort_order)).where(Task.user_id == user_id))
     task = Task(user_id=user_id, sort_order=(max_sort or 0) + 1, **data)
@@ -159,6 +178,8 @@ async def update_task(
     user_id: uuid.UUID = Depends(get_current_user_id),
 ):
     task = await _get_owned_task(task_id, user_id, db)
+    if "parent_task_id" in payload.model_fields_set:
+        await _check_parent(task.id, payload.parent_task_id, user_id, db)
     updates = payload.model_dump(exclude_unset=True, exclude={"label_ids"})
     for field, value in updates.items():
         setattr(task, field, value)
@@ -202,6 +223,8 @@ async def complete_task(
         task.is_completed = True
         task.completed_at = now
 
+    # History for Stats/Karma; survives recurrence roll-forward and task deletion.
+    db.add(CompletionEvent(user_id=user_id, task_id=task.id, task_content=task.content, completed_at=now))
     await db.commit()
     task = await _get_owned_task(task_id, user_id, db)
     return TaskRead.from_orm_task(task)
@@ -216,6 +239,15 @@ async def reopen_task(
     task = await _get_owned_task(task_id, user_id, db)
     task.is_completed = False
     task.completed_at = None
+    # Undo the most recent completion event so reopening doesn't count twice.
+    latest = await db.scalar(
+        select(CompletionEvent.id)
+        .where(CompletionEvent.task_id == task.id)
+        .order_by(CompletionEvent.completed_at.desc())
+        .limit(1)
+    )
+    if latest is not None:
+        await db.execute(delete(CompletionEvent).where(CompletionEvent.id == latest))
     await db.commit()
     task = await _get_owned_task(task_id, user_id, db)
     return TaskRead.from_orm_task(task)

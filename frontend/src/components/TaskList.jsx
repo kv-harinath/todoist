@@ -9,8 +9,16 @@ import { useReorderTask } from '../hooks/useTasks.js'
 // already implied by something else (due date, filter query), so
 // callers opt in with `reorderable` - Inbox and Project views use it,
 // Today/Upcoming/Filters don't.
+// Sub-tasks (parent_task_id set) render nested under their parent when
+// the parent is in the same list; otherwise they show as top-level rows.
+function rootTasks(tasks) {
+  const ids = new Set((tasks || []).map((t) => t.id))
+  return (tasks || []).filter((t) => !t.parent_task_id || !ids.has(t.parent_task_id))
+}
+
 export default function TaskList({ tasks, reorderable = false, emptyMessage = 'Nothing here.' }) {
-  const [order, setOrder] = useState(tasks)
+  const roots = rootTasks(tasks)
+  const [order, setOrder] = useState(roots)
   const dragIndex = useRef(null)
   const reorderTask = useReorderTask()
 
@@ -19,7 +27,7 @@ export default function TaskList({ tasks, reorderable = false, emptyMessage = 'N
   // so we don't yank the list out from under an in-progress reorder.
   useEffect(() => {
     if (dragIndex.current === null) {
-      setOrder(tasks)
+      setOrder(rootTasks(tasks))
     }
   }, [tasks])
 
@@ -50,12 +58,21 @@ export default function TaskList({ tasks, reorderable = false, emptyMessage = 'N
     })
   }
 
+  const childrenByParent = new Map()
+  for (const task of tasks) {
+    if (!task.parent_task_id) continue
+    const list = childrenByParent.get(task.parent_task_id) || []
+    list.push(task)
+    childrenByParent.set(task.parent_task_id, list)
+  }
+
   return (
     <ul className="task-list">
       {order.map((task, index) => (
         <TaskItem
           key={task.id}
           task={task}
+          childrenOf={childrenByParent}
           dragHandlers={
             reorderable
               ? {

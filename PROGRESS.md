@@ -12,3 +12,7 @@ Tracking milestones from `todoist-clone-plan.md` section 8.
 - [ ] 8. Testing pass + deployment write-up. **Intentionally skipped for now** - a handful of backend unit tests exist (`backend/tests/`) but there's no integration test suite, frontend tests, or deployment write-up yet.
 
 See the README's "What's implemented" section for feature-level detail and known scope limitations.
+
+## Post-milestone additions (Todoist reference gap work)
+- Sub-tasks to 4 levels (validated), `/section` + `every other`/`every!` Quick Add and recurrence, `##Project` filters, goals/Karma with completion history (migration 0004), email/push reminders (0003).
+- Boolean filter language, Quick Add `#project`/`@label`/time/recurrence parsing, filter descriptions, sub-task UI, project Calendar layout, reminders (migration `0002` must be applied: `alembic upgrade head`). Gap status in `docs/TODOIST_GAP_ANALYSIS.md`.

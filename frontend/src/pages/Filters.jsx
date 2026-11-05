@@ -31,6 +31,13 @@ export default function FiltersPage() {
     }
   }
 
+  function handleEditQuery(filter) {
+    const newQuery = window.prompt('Edit filter query', filter.query)
+    if (newQuery && newQuery.trim() && newQuery.trim() !== filter.query) {
+      updateFilter.mutate({ id: filter.id, data: { query: newQuery.trim() } })
+    }
+  }
+
   return (
     <div className="main-content">
       <div className="page-header">
@@ -45,8 +52,10 @@ export default function FiltersPage() {
         </NavLink>
       </div>
       <p className="page-subtitle">
-        Simple AND-only query language: combine tokens like <code>p1</code>, <code>overdue</code>,{' '}
-        <code>today</code>, <code>no date</code>, <code>label:Work</code>, <code>project:Personal</code>.
+        Combine with <code>&amp;</code> (and), <code>|</code> (or), <code>!</code> (not) and parentheses, e.g.{' '}
+        <code>(today | overdue) &amp; p1</code>. Atoms: <code>p1</code>-<code>p4</code>, <code>today</code>,{' '}
+        <code>overdue</code>, <code>no date</code>, <code>recurring</code>, <code>#Project</code> (<code>##Project</code> includes sub-projects),{' '}
+        <code>%label</code>, <code>search: text</code>, <code>due before: tomorrow</code>.
       </p>
 
       <form onSubmit={handleCreate} style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
@@ -68,7 +77,7 @@ export default function FiltersPage() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="e.g. p1 AND overdue"
+          placeholder="e.g. (today | overdue) & p1"
           style={{
             flex: 1,
             padding: '0.5rem 0.7rem',
@@ -94,8 +103,12 @@ export default function FiltersPage() {
               <div className="task-meta">
                 <span className="badge">{filter.query}</span>
               </div>
+              {filter.description && <div className="page-subtitle">{filter.description}</div>}
             </div>
             <div className="task-actions" style={{ opacity: 1 }}>
+              <button type="button" className="icon-button" onClick={() => handleEditQuery(filter)}>
+                Edit query
+              </button>
               <button type="button" className="icon-button" onClick={() => handleRename(filter)}>
                 Rename
               </button>
